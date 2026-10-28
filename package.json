@@ -1,0 +1,44 @@
+{
+  "name": "@amadeus/persona",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Amadeus Persona v0.1: trusted Workspace/QQ-Scene persona injection, revisioned JSON storage, owner-only management API, and five-page Web Console for DeepSeek Harness",
+  "license": "UNLICENSED",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./client": "./src/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "scripts",
+    "test",
+    "cordis.patch.yml",
+    "docs/IMPLEMENTATION_PLAN.md",
+    "docs/UI_REPORT.md",
+    "README.md"
+  ],
+  "dsh": {
+    "manifestVersion": 1,
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings"
+      ],
+      "platform": "web"
+    }
+  },
+  "engines": {
+    "node": ">=22.13.0",
+    "dsh": ">=0.2.1-rc.3 <0.3.0"
+  },
+  "scripts": {
+    "build:client": "node scripts/build-client.mjs",
+    "test": "node test/run.js",
+    "test:node": "node --test test/*.test.js"
+  }
+}

@@ -1,0 +1,7 @@
+# Amadeus Persona bundle patch.
+# Install through the official DSH Plugin Manager; do not merge this row into a
+# live profile by hand. The plugin is Host-global and scopes itself to exactly
+# one DSH Workspace through its owner API.
+- insert:
+    - id: amadeus-persona
+      name: '@amadeus/persona'

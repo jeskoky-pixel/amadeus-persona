@@ -1,0 +1,120 @@
+// DSH settings-section client source. This file is wrapped in the lazy-CJS
+// module loader by scripts/build-client.mjs; it is not imported by the Host.
+const { createElement: h, useEffect, useState } = require('react');
+
+const API_ROOT = '/api/amadeus-persona';
+const CONSOLE_URL = API_ROOT + '/console';
+
+const PANEL_CSS = `
+[data-amadeus-persona]{box-sizing:border-box;color:var(--dsw-alias-label-primary,#203333);font:13px/1.6 system-ui,sans-serif;max-width:760px}
+[data-amadeus-persona] *{box-sizing:border-box}
+[data-amadeus-persona] h2{font-size:21px;margin:0 0 5px}
+[data-amadeus-persona] p{margin:0 0 14px;opacity:.75}
+[data-amadeus-persona] .summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:14px 0}
+[data-amadeus-persona] .metric{border:1px solid var(--dsw-alias-border-secondary,#8c8c8c55);border-radius:12px;padding:12px;background:var(--dsw-alias-bg-layer-2,#8c8c8c10)}
+[data-amadeus-persona] .metric small{display:block;opacity:.68;font-size:11px}
+[data-amadeus-persona] .metric strong{display:block;font-size:14px;margin-top:3px;word-break:break-word}
+[data-amadeus-persona] button{border:1px solid #178a69;background:#178a69;color:white;border-radius:9px;padding:8px 14px;font:inherit;cursor:pointer}
+[data-amadeus-persona] button:focus-visible{outline:2px solid #178a69;outline-offset:2px}
+[data-amadeus-persona] .error{color:#ab3535;margin:12px 0}
+[data-amadeus-persona] .note{font-size:11px;opacity:.6;margin:12px 0 0}
+@media(max-width:560px){[data-amadeus-persona] .summary{grid-template-columns:1fr}}
+`;
+
+async function readOverview() {
+  const response = await fetch(API_ROOT + '/overview', {
+    credentials: 'same-origin',
+    headers: { accept: 'application/json' },
+  });
+  let payload;
+  try {
+    payload = await response.json();
+  } catch {
+    throw new Error(`Host returned an unreadable response (HTTP ${response.status}).`);
+  }
+  if (!response.ok || payload?.ok !== true) {
+    if (response.status === 401 || response.status === 403) {
+      throw new Error('Check DSH Owner authentication, then open the console from an authenticated settings page.');
+    }
+    throw new Error(payload?.error || `Host status is unavailable (HTTP ${response.status}).`);
+  }
+  return payload.data;
+}
+
+function Metric({ label, value }) {
+  return h('div', { className: 'metric' },
+    h('small', null, label),
+    h('strong', null, value));
+}
+
+function Panel() {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const overview = await readOverview();
+        if (!active) return;
+        setData(overview);
+        setError('');
+      } catch (failure) {
+        if (!active) return;
+        setData(null);
+        setError(failure instanceof Error ? failure.message : 'Persona status is unavailable.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    void load();
+    return () => { active = false; };
+  }, []);
+
+  const storage = data?.storage;
+  const workspace = data?.workspace;
+  const storageLabel = loading
+    ? 'Checking…'
+    : storage?.status === 'ok'
+      ? `Healthy · revision ${storage.revision ?? '—'}`
+      : storage?.status === 'invalid'
+        ? 'Storage invalid · injection fails closed'
+        : 'Storage unavailable · injection fails closed';
+  const workspaceLabel = loading
+    ? 'Checking…'
+    : workspace
+      ? `${workspace.title} · ${workspace.sessionCount ?? 0} sessions`
+      : 'Not bound · no Persona injection';
+
+  return h('div', { 'data-amadeus-persona': 'true' },
+    h('style', null, PANEL_CSS),
+    h('h2', null, 'Amadeus Persona'),
+    h('p', null, 'Health and Workspace are read from the authenticated Host API. Editing stays in the owner-only Web Console.'),
+    error ? h('div', { className: 'error', role: 'status' }, error) : null,
+    h('div', { className: 'summary' },
+      h(Metric, { label: 'Storage health', value: storageLabel }),
+      h(Metric, { label: 'Bound Workspace', value: workspaceLabel })),
+    h('button', {
+      type: 'button',
+      onClick: () => window.open(CONSOLE_URL, '_blank', 'noopener,noreferrer'),
+    }, 'Open Persona console'),
+    h('p', { className: 'note' }, 'Same-origin and DSH Owner admission are required. This panel never stores Persona data in the browser.'));
+}
+
+return {
+  name: '@amadeus/persona-client',
+  inject: ['slots'],
+  apply(ctx) {
+    try {
+      ctx.slots.inject('settings.section', () => ctx.slots.register({
+        name: 'settings.section',
+        id: 'amadeus-persona',
+        order: 32,
+        label: () => 'Amadeus Persona',
+      }, Panel));
+    } catch (error) {
+      console.error('[amadeus-persona] settings.section unavailable', error);
+    }
+  },
+};
