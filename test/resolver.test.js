@@ -281,6 +281,32 @@ test('authorized QQ Scene can be bound before its first Session, then revocation
   }
 });
 
+test('authorized private Scenes remain bindable after the QQ group allowlist reaches its limit', async () => {
+  const fixture = await setup({ qq: false });
+  try {
+    const authorized = Array.from({ length: 200 }, (_, index) => ({
+      platform: 'qq', kind: 'group', id: `bot-a:group-${index + 1}`,
+      workspaceId: 'ws-a', authorized: true,
+    }));
+    authorized.push({
+      platform: 'qq', kind: 'private', id: 'bot-a:private-last',
+      workspaceId: 'ws-a', authorized: true,
+    });
+    const service = makeService({
+      store: fixture.store, registry: fixture.registry,
+      qq: makeQq(QQ_MAPPING, { authorized }), headers: HEADERS,
+    });
+    assert.equal(service.listWorkspaces().qq.scenes.some(scene => scene.peerId === 'private-last'), true);
+    const result = await service.upsertBinding(fixture.store.requireState().revision, {
+      kind: 'qq', scene: { kind: 'private', botId: 'bot-a', peerId: 'private-last' },
+      mode: 'core-only',
+    });
+    assert.equal(result.binding.status.reason, 'awaiting_first_session');
+  } finally {
+    await removeTempDir(fixture.directory);
+  }
+});
+
 test('Workspace switch archives bindings, leaves core active, and restores prior owner on rollback', async () => {
   const fixture = await setup();
   try {

@@ -39,7 +39,8 @@ import {
 } from './errors.js';
 
 const MAX_RECENT_ASSEMBLIES = 100;
-const MAX_DISCOVERED_SCENES = 200;
+// QQ setup permits 200 groups plus 200 private peers for its single Bot.
+const MAX_DISCOVERED_SCENES = 400;
 
 /**
  * @param {unknown} value candidate.

@@ -22,10 +22,10 @@
 
 | 层级 | 结果 |
 | --- | --- |
-| 自动化 | Persona `48/48` 通过；QQ 只读 Scene 契约 `2/2` 通过。覆盖旧 v0.1 配置迁移、Workspace 绑定归属、切换前安全备份、QQ 撤权、默认风格、子 Agent 排除、原子写入、Owner API、i18n 与最终 Section 比较。 |
+| 自动化 | Persona `49/49` 通过；QQ 只读 Scene 契约 `2/2` 通过。覆盖旧 v0.1 配置迁移、Workspace 绑定归属、切换前安全备份、QQ 撤权、完整群与私聊授权容量、默认风格、子 Agent 排除、原子写入、Owner API、i18n 与最终 Section 比较。 |
 | 真实 Host | Persona 在两个独立 Section 注入；QQ 的两个隔离测试群 Scene 分别保存温柔、泼辣绑定。撤销其中一个 QQ Scene 后，Persona 立即报告 `qq_revoked`；重新授权后恢复有效。重启后五插件 Owner 接口均可用。QQ 授权时会预建 Session，所以这次 Host 联测没有出现“已授权但尚无 Session”的自然状态；该状态由契约单元测试覆盖。 |
 | 真实浏览器 | Edge Chromium 中检查中文、英文 Web Console 及中文原生设置页。五页导航、场景编辑、冲突提示、备份恢复、主题和窄屏已操作；见下方截图。 |
-| 真实模型 | `opencode-go/deepseek-v4.1-flash` 在同一普通 DSH Session 完成核心 A→B、禁用、恢复及温柔→泼辣→默认的模型回合。新的三轮风格 Session 中，模型语气分别随温柔、泼辣、温柔变化；切回默认的一次回答把当前标记误写成不存在的 `WARM_883`，下一轮明确询问当前系统设定后准确返回 `GENTLE_411`。另一个被多次失败探针污染的长期 Session，最终 System Prompt 已为温柔，模型仍持续自述旧的泼辣标记；因此不能宣称热更新表达稳定通过。 |
+| 真实模型 | `opencode-go/deepseek-v4.1-flash` 在同一普通 DSH Session 完成核心 A→B、禁用、恢复及温柔→泼辣→默认的模型回合。新的三轮风格 Session 中，模型语气分别随温柔、泼辣、温柔变化；切回默认的一次回答把当前标记误写成不存在的 `WARM_883`，下一轮明确询问当前系统设定后准确返回 `GENTLE_411`。另一个被多次失败探针污染的长期 Session，最终 System Prompt 已为温柔；在五插件同装后再次明确要求“只依据本轮有效的系统提示词”时，模型仍返回旧的 `SPICY_622` 并使用泼辣语气。因此不能宣称热更新表达稳定通过。 |
 | 实际工具 | 人格切换前后真实 `read` 工具均成功读取隔离测试文件；五插件同装后又完成一次。最终同装回合的 `request/header` 记录模型可见工具 72 项，调用 `read` 并得到工具结果。此前 Persona 单装回合为 32 项。Persona 没有新增或删除工具；数量增加来自其他四个插件。 |
 | 真实 QQ/NapCat | 本轮未验证。只发现非隔离的 NapCat Desktop 进程，未将隔离 Profile 接入它，也未向真实群聊或私聊发送消息。此前 QQ 版本的历史实测不能充当本轮 Persona+QQ 联测。 |
 
