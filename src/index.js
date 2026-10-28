@@ -11,15 +11,45 @@
  * file and injects no demo text.
  */
 
+import { createHash } from 'node:crypto';
 import { homedir } from 'node:os';
 import { isAbsolute, join } from 'node:path';
 import { createPersonaHandler, PREFIX } from './http.js';
 import { PersonaService } from './service.js';
 import { PersonaStore } from './store.js';
+import { formatPersonaSection } from './section-text.js';
 import { LIMITS } from './validation.js';
 
 export const name = 'amadeus-persona';
 export const inject = ['systemPrompt', 'workspaceRegistry'];
+
+/** Ask DSH to start a fresh request series only when the effective Persona changes. */
+export function createRequestSeriesRefresh(service, store, registry) {
+  const lastPrompt = new Map();
+  return async ({ agent }, next) => {
+    const decision = await next();
+    if (decision?.kind !== 'enter' || !Array.isArray(decision.messages) || decision.messages.length === 0) {
+      return decision;
+    }
+    const sessionId = typeof agent?.id === 'string' ? agent.id : agent?.session?.id;
+    if (typeof sessionId !== 'string') return decision;
+    let bound = false;
+    try {
+      const workspaceId = store.requireState().workspaceId;
+      bound = registry?.get?.(workspaceId)?.sessionIds?.includes?.(sessionId) === true;
+    } catch { /* storage or registry unavailable: keep the Host's decision */ }
+    if (!bound && !lastPrompt.has(sessionId)) return decision;
+    const resolution = service.resolveForAssembly(agent);
+    const fingerprint = createHash('sha256')
+      .update(`${resolution.coreText}\u0000${resolution.styleText}`)
+      .digest('hex');
+    const changed = lastPrompt.get(sessionId) !== fingerprint;
+    lastPrompt.delete(sessionId);
+    lastPrompt.set(sessionId, fingerprint);
+    while (lastPrompt.size > 256) lastPrompt.delete(lastPrompt.keys().next().value);
+    return changed ? { ...decision, startsRequestSeries: true } : decision;
+  };
+}
 
 /**
  * Default isolated data directory.
@@ -159,9 +189,7 @@ export function apply(ctx, rawConfig = {}) {
     try {
       const resolution = resolve(context);
       service.markSectionInvoked(resolution, part);
-      return part === 'core'
-        ? (typeof resolution.coreText === 'string' ? resolution.coreText : '')
-        : (typeof resolution.styleText === 'string' ? resolution.styleText : '');
+      return formatPersonaSection(part, part === 'core' ? resolution.coreText : resolution.styleText);
     } catch {
       return '';
     }
@@ -180,13 +208,26 @@ export function apply(ctx, rawConfig = {}) {
   ctx.effect(
     () => ctx.systemPrompt.section({
       name: 'amadeus:scene-persona',
-      order: 20,
+      // Keep the changing style near the official deployment suffix. The
+      // stable core remains near the prefix; tool and policy sections stay in
+      // their official order and are never replaced by Persona.
+      order: 10190,
       interpolate: false,
       complete: false,
       text: context => sectionText(context, 'scene'),
     }),
     'amadeus-persona: scene System Prompt section',
   );
+
+  // DSH's in-history model routes retain earlier system nodes within one
+  // request series. A changed Persona section must start a new series so the
+  // official SystemPromptProjection replaces the old system node instead of
+  // letting an older style compete with the current one. The Session, preset,
+  // tools, user history, and current tool call remain untouched.
+  if (typeof ctx.on === 'function') {
+    ctx.effect(() => ctx.on('agent/pre-step', createRequestSeriesRefresh(service, store, ctx.workspaceRegistry),
+      { prepend: true }), 'amadeus-persona: refresh request series when Persona changes');
+  }
 
   // Native management is an optional Host capability. Without webServer or a
   // DSH Connection the plugin keeps injecting; no unauthenticated surface is

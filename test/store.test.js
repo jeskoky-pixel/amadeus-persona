@@ -38,6 +38,29 @@ test('persistence reloads the validated revisioned document', async () => {
   }
 });
 
+test('v0.1 document without binding owner keeps its original Workspace bindings', async () => {
+  const directory = await makeTempDir();
+  try {
+    const registry = makeRegistry([{ id: 'ws-old', sessionIds: ['s-old'] }]);
+    const store = makeStore(directory, { now: fixedClock() });
+    const service = makeService({ store, registry });
+    await service.bindWorkspace(0, 'ws-old');
+    await service.upsertBinding(1, { kind: 'session', sessionId: 's-old', mode: 'core-only' });
+    const file = join(directory, 'persona.json');
+    const legacy = JSON.parse(await readFile(file, 'utf8'));
+    delete legacy.bindingWorkspaceId;
+    for (const entry of legacy.history) delete entry.data.bindingWorkspaceId;
+    await writeFile(file, JSON.stringify(legacy), 'utf8');
+    const reloaded = makeStore(directory);
+    assert.equal(reloaded.requireState().bindingWorkspaceId, 'ws-old');
+    assert.equal(makeService({ store: reloaded, registry }).getBindings().bindings[0].status.valid, true);
+    await makeService({ store: reloaded, registry }).updateCore(2, 'CORE');
+    assert.equal(JSON.parse(await readFile(file, 'utf8')).bindingWorkspaceId, 'ws-old');
+  } finally {
+    await removeTempDir(directory);
+  }
+});
+
 test('optimistic conflict rejects the stale writer and leaves one committed file', async () => {
   const directory = await makeTempDir();
   try {

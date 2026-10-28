@@ -15,6 +15,7 @@ import {
 import {
   CONSOLE_CSS,
   CONSOLE_HTML,
+  CONSOLE_I18N,
   CONSOLE_JS,
 } from './console-assets.js';
 import {
@@ -216,6 +217,7 @@ function decodeSegment(value) {
  *   getConnection?: () => Record<string, any>|undefined,
  *   consoleHtml?: string,
  *   consoleCss?: string,
+ *   consoleI18n?: string,
  *   consoleJs?: string,
  * }} options handler dependencies.
  * @returns {(req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => Promise<void>} handler.
@@ -228,6 +230,7 @@ export function createPersonaHandler(options) {
   const getConnection = typeof options.getConnection === 'function' ? options.getConnection : () => undefined;
   const consoleHtml = typeof options.consoleHtml === 'string' ? options.consoleHtml : CONSOLE_HTML;
   const consoleCss = typeof options.consoleCss === 'string' ? options.consoleCss : CONSOLE_CSS;
+  const consoleI18n = typeof options.consoleI18n === 'string' ? options.consoleI18n : CONSOLE_I18N;
   const consoleJs = typeof options.consoleJs === 'string' ? options.consoleJs : CONSOLE_JS;
 
   return async function personaHandler(req, res) {
@@ -258,6 +261,9 @@ export function createPersonaHandler(options) {
         }
         if (path === '/console/console.css') {
           return sendConsoleAsset(res, 'text/css; charset=utf-8', consoleCss);
+        }
+        if (path === '/console/i18n.js') {
+          return sendConsoleAsset(res, 'text/javascript; charset=utf-8', consoleI18n);
         }
         if (path === '/console/console.js') {
           return sendConsoleAsset(res, 'text/javascript; charset=utf-8', consoleJs);

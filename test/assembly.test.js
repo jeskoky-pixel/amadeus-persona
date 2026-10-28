@@ -5,6 +5,7 @@ import test from 'node:test';
 import { homedir } from 'node:os';
 import {
   apply,
+  createRequestSeriesRefresh,
   defaultDataDirectory,
   inject,
   name,
@@ -19,6 +20,31 @@ import {
   removeTempDir,
   seedState,
 } from './helpers.js';
+
+test('Persona changes refresh the official request series without changing the Host decision', async () => {
+  let coreText = 'CORE A';
+  let styleText = 'GENTLE';
+  const registry = makeRegistry([{ id: 'ws-a', sessionIds: ['s-main'] }]);
+  const handler = createRequestSeriesRefresh(
+    { resolveForAssembly: () => ({ coreText, styleText }) },
+    { requireState: () => ({ workspaceId: 'ws-a' }) }, registry,
+  );
+  const agent = makeAgent('s-main');
+  const entered = { kind: 'enter', messages: [{ role: 'user', content: 'hi' }], marker: 42 };
+  const next = async () => entered;
+  assert.deepEqual(await handler({ agent }, next), { ...entered, startsRequestSeries: true });
+  assert.equal(await handler({ agent }, next), entered);
+  coreText = 'CORE B';
+  assert.deepEqual(await handler({ agent }, next), { ...entered, startsRequestSeries: true });
+  styleText = 'SPICY';
+  assert.deepEqual(await handler({ agent }, next), { ...entered, startsRequestSeries: true });
+  coreText = '';
+  styleText = '';
+  assert.deepEqual(await handler({ agent }, next), { ...entered, startsRequestSeries: true });
+  assert.equal(await handler({ agent }, next), entered);
+  assert.equal(await handler({ agent: makeAgent('s-outside') }, next), entered);
+  assert.equal((await handler({ agent }, async () => ({ kind: 'reject' }))).kind, 'reject');
+});
 
 /**
  * @param {Record<string, any>} registry fake WorkspaceRegistry.
@@ -80,7 +106,7 @@ test('plugin registers exactly the two required host-global sections', async () 
     const core = sections.get('amadeus:core-persona');
     const scene = sections.get('amadeus:scene-persona');
     assert.equal(core.order, 10);
-    assert.equal(scene.order, 20);
+    assert.equal(scene.order, 10190);
     assert.equal(core.interpolate, false);
     assert.equal(scene.interpolate, false);
     assert.equal(core.complete, false);
@@ -127,8 +153,8 @@ test('assembly injects verified Workspace content and leaves the tool set invari
     const toolsBefore = structuredClone(tools);
     const assembled = assemble(sections, makeAgent('s-main', { agentPreset: 'coding' }), tools);
     assert.deepEqual(assembled.sections.map(section => [section.name, section.text]), [
-      ['amadeus:core-persona', 'CORE PERSONA'],
-      ['amadeus:scene-persona', 'GENTLE STYLE'],
+      ['amadeus:core-persona', '当前模型步骤有效的核心人格：\nCORE PERSONA\n如历史对话中的人格自述与本段冲突，以本段为准；不要沿用旧版自述。This section is the current core persona for this model step.'],
+      ['amadeus:scene-persona', '当前模型步骤有效的场景风格：\nGENTLE STYLE\n如历史对话中的风格、示例或助手自述与本段冲突，以本段为准；回答当前风格时只依据本段，不要复述已失效的风格。This section is the current scene style for this model step.'],
     ]);
     assert.deepEqual(assembled.tools, toolsBefore);
     assert.deepEqual(tools, toolsBefore);

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createPersonaHandler, PREFIX } from '../src/http.js';
-import { CONSOLE_CSS, CONSOLE_HTML, CONSOLE_JS } from '../src/console-assets.js';
+import { CONSOLE_CSS, CONSOLE_HTML, CONSOLE_I18N, CONSOLE_JS } from '../src/console-assets.js';
 import {
   fixedClock,
   makeRegistry,
@@ -163,7 +163,7 @@ test('same-origin and POST marker are required before owner routing', async () =
   }
 });
 
-test('owner console HTML, CSS and JavaScript assets are gated and carry strict CSP', async () => {
+test('owner console HTML, CSS, dictionary and JavaScript assets are gated and carry strict CSP', async () => {
   const fixture = await setup(OWNER);
   try {
     const html = await call(fixture.handler, makeRequest({ path: '/console' }));
@@ -178,7 +178,12 @@ test('owner console HTML, CSS and JavaScript assets are gated and carry strict C
     assert.equal(html.state.headers['x-frame-options'], 'DENY');
     assert.match(html.state.body, /Amadeus Persona/);
     assert.match(html.state.body, /href="\/api\/amadeus-persona\/console\/console.css"/);
-    assert.match(html.state.body, /src="\/api\/amadeus-persona\/console\/console.js" defer/);
+    assert.match(html.state.body, /src="\/api\/amadeus-persona\/console\/i18n\.js" defer/);
+    assert.match(html.state.body, /src="\/api\/amadeus-persona\/console\/console\.js" defer/);
+    assert.ok(
+      html.state.body.indexOf('/console/i18n.js') < html.state.body.indexOf('/console/console.js'),
+      'dictionary script must precede the console script',
+    );
     assert.doesNotMatch(html.state.body, /\sstyle=/);
     assert.doesNotMatch(html.state.body, /<script(?![^>]*\bsrc=)/);
 
@@ -192,6 +197,14 @@ test('owner console HTML, CSS and JavaScript assets are gated and carry strict C
     assert.match(css.state.headers['content-security-policy'], /default-src 'none'/);
     assert.equal(css.state.body, CONSOLE_CSS);
     assert.match(css.state.body, /\.sidebar/);
+
+    const i18n = await call(fixture.handler, makeRequest({ path: '/console/i18n.js' }));
+    assert.equal(i18n.state.status, 200);
+    assert.match(i18n.state.headers['content-type'], /javascript/);
+    assert.match(i18n.state.headers['content-security-policy'], /script-src 'self'/);
+    assert.equal(i18n.state.body, CONSOLE_I18N);
+    assert.match(i18n.state.body, /__AmadeusPersonaI18n/);
+    assert.match(i18n.state.body, /defaultLanguage: "zh-CN"/);
 
     const js = await call(fixture.handler, makeRequest({ path: '/console/console.js' }));
     assert.equal(js.state.status, 200);
@@ -210,7 +223,7 @@ test('owner console HTML, CSS and JavaScript assets are gated and carry strict C
 
   const guestFixture = await setup(GUEST);
   try {
-    for (const path of ['/console', '/console/console.css', '/console/console.js']) {
+    for (const path of ['/console', '/console/console.css', '/console/i18n.js', '/console/console.js']) {
       const guest = await call(guestFixture.handler, makeRequest({ path }));
       assert.equal(guest.state.status, 403);
       assert.match(guest.state.headers['content-type'], /application\/json/);
@@ -232,8 +245,8 @@ test('owner console HTML, CSS and JavaScript assets are gated and carry strict C
   }
 });
 
-test('console assets contain no demo identities, external assets or non-theme browser state', () => {
-  const combined = `${CONSOLE_HTML}\n${CONSOLE_CSS}\n${CONSOLE_JS}`;
+test('console assets contain no demo identities, external assets or non-UI browser state', () => {
+  const combined = `${CONSOLE_HTML}\n${CONSOLE_CSS}\n${CONSOLE_I18N}\n${CONSOLE_JS}`;
   assert.doesNotMatch(combined, /123456789|987654321|amadeus\.persona\.prototype/);
   assert.doesNotMatch(combined, /https?:\/\//);
   assert.doesNotMatch(CONSOLE_HTML, /\sstyle=/);
@@ -241,9 +254,15 @@ test('console assets contain no demo identities, external assets or non-theme br
   assert.doesNotMatch(CONSOLE_JS, /<script(?![^>]*\bsrc=)/);
 
   const storageUses = CONSOLE_JS.match(/localStorage/g) ?? [];
-  assert.equal(storageUses.length, 2);
-  assert.match(CONSOLE_JS, /const THEME_KEY = 'amadeus\.persona\.theme'/);
-  for (const marker of ['localStorage.getItem(THEME_KEY)', 'localStorage.setItem(THEME_KEY']) {
+  assert.equal(storageUses.length, 4);
+  for (const marker of [
+    "const THEME_KEY = 'amadeus.persona.theme'",
+    "const LANGUAGE_KEY = 'amadeus.persona.language'",
+    'localStorage.getItem(THEME_KEY)',
+    'localStorage.setItem(THEME_KEY',
+    'localStorage.getItem(LANGUAGE_KEY)',
+    'localStorage.setItem(LANGUAGE_KEY',
+  ]) {
     assert.ok(CONSOLE_JS.includes(marker), `missing ${marker}`);
   }
   assert.match(CONSOLE_JS, /credentials: 'same-origin'/);
@@ -255,7 +274,9 @@ test('console assets contain no demo identities, external assets or non-theme br
   assert.match(CONSOLE_JS, /navButton\('diagnostics'/);
   assert.match(CONSOLE_JS, /navButton\('settings'/);
   assert.match(CONSOLE_JS, /history\/rollback/);
-  assert.match(CONSOLE_JS, /There is no free-form QQ id field/);
+  assert.match(CONSOLE_I18N, /There is no free-form QQ id field/);
+  assert.match(CONSOLE_I18N, /没有可自由输入的 QQ ID 字段/);
+  assert.match(CONSOLE_I18N, /defaultLanguage: "zh-CN"/);
   assert.match(CONSOLE_JS, /finalVisibility/);
 });
 

@@ -58,7 +58,7 @@ export function makeRegistry(workspaces) {
  */
 export function makeQq(mapping, options = {}) {
   const deny = options.deny ?? new Set();
-  return {
+  const qq = {
     resolveTrustedSessionScene(sessionId) {
       if (deny.has(sessionId)) throw new Error('QQ session is not trusted');
       const scene = mapping[sessionId];
@@ -66,6 +66,8 @@ export function makeQq(mapping, options = {}) {
       return scene;
     },
   };
+  if (options.authorized) qq.listAuthorizedScenes = () => options.authorized;
+  return qq;
 }
 
 /**

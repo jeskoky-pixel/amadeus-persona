@@ -6,7 +6,7 @@ A standalone DeepSeek Harness (DSH) Host plugin for one trusted Workspace's core
 
 - DSH Desktop `0.2.1-rc.3` through the `0.2.x` line (`>=0.2.1-rc.3 <0.3.0`).
 - Node.js `>=22.13.0` for development and tests.
-- Optional: an installed QQ Host plugin exposing `qq.resolveTrustedSessionScene(sessionId)`. Ordinary DSH Session bindings work without QQ.
+- Optional: Amadeus QQ with `qq.listAuthorizedScenes()` for binding authorized Scenes before their first message, and `qq.resolveTrustedSessionScene(sessionId)` for active Session injection. Ordinary DSH Session bindings work without QQ.
 
 No QQ, Memory, Life, or State plugin is required.
 
@@ -27,14 +27,14 @@ An empty install writes no Persona file and injects no demo text. Injection stay
 
 ## First setup
 
-1. **Settings → Bound Workspace**: select one real DSH Workspace by stable id. The old Workspace stops receiving Persona; the new Workspace begins at the next model assembly. No Sessions are deleted or recreated.
+1. **Settings → Bound Workspace**: select one real DSH Workspace by stable id. Switching Workspaces first saves a safety backup and archives the old active bindings; the new Workspace starts without those Scene bindings. The old Workspace stops receiving Persona at the next model assembly. No Sessions are deleted or recreated.
 2. **Library**: write and save the core persona. Then create style cards. A new style is written only when you save; the console does not prefill sample content.
 3. **Settings**: choose the Workspace default style (or core-only) and confirm that Persona injection is enabled.
-4. **Bindings**: choose a target from the trusted list (current Workspace Sessions and verified QQ Scenes) and save one explicit mode: inherit, core-only, style, or disabled. The console has no free-form QQ id field.
+4. **Bindings**: choose a target from the trusted list (current Workspace Sessions and currently authorized QQ Scenes, including Scenes waiting for a first Session) and save one explicit mode: inherit, core-only, style, or disabled. The console has no free-form QQ id field. A revoked or paused QQ Scene stops being trusted immediately.
 5. **Diagnostics**: review configured sections and observed callbacks. For an observed live Session, run the explicit final Host assembly check. It reports visible, overridden, or unavailable without returning prompt text. A callback invocation alone is not proof that the text survived the final assembly.
 6. **Settings → Backups**: create a backup before a large edit or upgrade.
 
-Persona changes take effect at the next model assembly. Existing Sessions keep their Agent preset, tools, permissions, and history. Do not promise zero token cost: a changed System Prompt can invalidate a cached prefix.
+Persona changes take effect at the next model step. A changed effective Persona starts a new DSH request series; existing Sessions keep their Agent preset, tools, permissions, and history. Do not promise zero token cost: a changed System Prompt can invalidate a cached prefix, and model wording can vary even when the final System Prompt is correct.
 
 ## Data, security and isolation
 
@@ -43,8 +43,8 @@ Persona changes take effect at the next model assembly. Existing Sessions keep t
 - The console and API are same-origin and require `connection.admit(req)` to resolve the authenticated DSH Owner principal. Loopback alone is not authorization.
 - JSON writes require a fixed `x-amadeus-persona: 1` marker as an additional CSRF defense.
 - Console assets are served with a strict CSP: no inline script/style, no external origins, same-origin API connections only.
-- The browser stores only the light/dark theme preference in LocalStorage. Persona cards, bindings, backups, and status are never browser-authoritative.
-- QQ Scene identity is accepted only from the optional QQ Host mapping. Existing group permissions and QQ send behavior stay with QQ.
+- The browser stores only the light/dark theme and `zh-CN`/`en-US` language preferences in LocalStorage. Simplified Chinese is the default. Persona cards, bindings, backups, and status are never browser-authoritative.
+- QQ Scene identity is accepted only from the optional QQ Host authorization list and trusted Session mapping. Existing group permissions and QQ send behavior stay with QQ.
 - Persona never modifies Memory, Life, State, tools, presets, or permissions. Memory's optional persona card is not changed; if conflict status cannot be read through a public Host contract, it remains unverified.
 - Only one Workspace is trusted. Other Workspaces receive empty Persona sections.
 
@@ -74,9 +74,9 @@ The DSH sandbox may block the piped child-process spawn used by `node --test`; `
 
 - Final System Prompt visibility remains unverified until the Owner runs a final Host assembly check on a live Session. A check can be unavailable when the Agent is not live or another provider fails assembly.
 - Token counts are conservative heuristic estimates, not tokenizer-exact.
-- QQ Scene editing requires a live trusted QQ Host mapping and current Workspace membership; a stale mapping fails closed.
-- The native settings section and five-page Web Console were visually exercised in an isolated DSH Desktop `0.2.1-rc.3` profile with Edge Chromium. Screenshots and the test boundary are in [`docs/VERIFICATION_2026-10-29.md`](docs/VERIFICATION_2026-10-29.md).
-- Model behavior, tool-call capability, task quality, and cache cost are not proven by these tests.
-- The package is private and unreleased. This repository does not publish, create a Release, or commit changes.
+- QQ Scene prebinding requires the current QQ Host authorization list for the bound Workspace; active injection also requires a trusted Session mapping. A stale or revoked mapping fails closed. Without the new QQ Host method, Persona retains the previous Session-only binding behavior.
+- The native settings section and five-page Web Console were visually exercised in an isolated DSH Desktop `0.2.1-rc.3` profile with Edge Chromium. [Chinese](docs/screenshots/console-zh-v01-final.png) and [English](docs/screenshots/console-en-v01-final.png) screenshots and the verification boundary are in [`docs/VERIFICATION_2026-10-29.md`](docs/VERIFICATION_2026-10-29.md).
+- Real model hot updates and tool calls were exercised, but a long-running test Session continued to echo an obsolete style after many prior self-reports. The final System Prompt was current. This behavior is being tracked as an acceptance blocker; see the verification report. Real QQ/NapCat messaging and the five-plugin Life/State behavior remain unverified in this round.
+- The package is private and unreleased. No GitHub Release, npm publication, or DSH Market submission has been made.
 
 See `docs/UI_REPORT.md` for the UI slice report and explicit verification boundaries.

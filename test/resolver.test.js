@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { PersonaService } from '../src/service.js';
+import { formatPersonaSection } from '../src/section-text.js';
 import {
   fixedClock,
   makeAgent,
@@ -109,11 +110,19 @@ test('explicit final Host probe distinguishes retained sections from complete-pr
     const visible = new PersonaService({
       ...options,
       assemblePrompt: async () => ({ sections: [
+        { name: 'amadeus:core-persona', text: formatPersonaSection('core', 'CORE') },
+        { name: 'amadeus:scene-persona', text: formatPersonaSection('scene', 'GENTLE') },
+      ] }),
+    });
+    assert.equal((await visible.probeFinalVisibility('s-main')).status, 'visible');
+    const changedText = new PersonaService({
+      ...options,
+      assemblePrompt: async () => ({ sections: [
         { name: 'amadeus:core-persona', text: 'CORE' },
         { name: 'amadeus:scene-persona', text: 'GENTLE' },
       ] }),
     });
-    assert.equal((await visible.probeFinalVisibility('s-main')).status, 'visible');
+    assert.equal((await changedText.probeFinalVisibility('s-main')).status, 'overridden');
     const overridden = new PersonaService({
       ...options,
       assemblePrompt: async () => ({ sections: [{ name: 'preset:complete', text: 'private preset text' }] }),
@@ -242,6 +251,55 @@ test('two QQ Scenes resolve different styles and the key includes the bot', asyn
   }
 });
 
+test('authorized QQ Scene can be bound before its first Session, then revocation stops injection', async () => {
+  const fixture = await setup({ qq: false });
+  try {
+    const authorized = [{ platform: 'qq', kind: 'group', id: 'bot-a:peer-1', workspaceId: 'ws-a', authorized: true }];
+    const qq = makeQq(QQ_MAPPING, { authorized });
+    const service = makeService({ store: fixture.store, registry: fixture.registry, qq, headers: HEADERS });
+    const discovered = service.listWorkspaces().qq.scenes.find(scene => scene.peerId === 'peer-1');
+    assert.equal(discovered.status, 'session_linked');
+    const preScene = { kind: 'group', botId: 'bot-a', peerId: 'peer-new' };
+    authorized.push({ platform: 'qq', kind: 'group', id: 'bot-a:peer-new', workspaceId: 'ws-a', authorized: true });
+    const pending = service.listWorkspaces().qq.scenes.find(scene => scene.peerId === 'peer-new');
+    assert.equal(pending.sessionId, null);
+    assert.equal(pending.status, 'awaiting_first_session');
+    const created = await service.upsertBinding(fixture.store.requireState().revision, {
+      kind: 'qq', scene: preScene, mode: 'style', styleId: fixture.seeded.styleIds.harsh,
+    });
+    assert.equal(created.binding.status.reason, 'awaiting_first_session');
+    fixture.registry.update('ws-a', { sessionIds: [...SESSIONS, 's-new'] });
+    QQ_MAPPING['s-new'] = qqScene('group', 'bot-a', 'peer-new');
+    const active = service.resolveForAssembly(makeAgent('s-new', { agentPreset: 'amadeus-qq' }));
+    assert.equal(active.styleText, 'HARSH');
+    authorized.pop();
+    assert.equal(service.resolveForAssembly(makeAgent('s-new', { agentPreset: 'amadeus-qq' })).reason, 'qq_scene_revoked');
+    assert.equal(service.getBindings().bindings.find(binding => binding.key === created.binding.key).status.reason, 'qq_revoked');
+  } finally {
+    delete QQ_MAPPING['s-new'];
+    await removeTempDir(fixture.directory);
+  }
+});
+
+test('Workspace switch archives bindings, leaves core active, and restores prior owner on rollback', async () => {
+  const fixture = await setup();
+  try {
+    const count = Object.keys(fixture.store.requireState().bindings).length;
+    const switched = await fixture.service.bindWorkspace(fixture.store.requireState().revision, 'ws-b');
+    assert.equal(switched.archivedBindingCount, count);
+    assert.match(switched.backupId, /^backup-/);
+    assert.equal(fixture.service.getBindings().bindings.length, 0);
+    assert.equal(fixture.store.requireState().bindingWorkspaceId, 'ws-b');
+    assert.equal(fixture.service.resolveForAssembly(agent('s-ws-b')).coreText, 'CORE');
+    await fixture.service.restore(fixture.store.requireState().revision, switched.backupId, 'RESTORE');
+    assert.equal(fixture.store.requireState().bindingWorkspaceId, 'ws-a');
+    assert.equal(fixture.service.getBindings().bindings.length, count);
+    assert.equal(fixture.service.resolveForAssembly(agent('s-qq-group')).styleText, 'HARSH');
+  } finally {
+    await removeTempDir(fixture.directory);
+  }
+});
+
 test('revoked or unverified QQ mapping fails closed even for a known QQ preset with a Session binding', async () => {
   const fixture = await setup({ deny: new Set(['s-qq-group', 's-revoked']) });
   try {
@@ -325,7 +383,7 @@ test('diagnostics distinguishes configured and assembled sections without prompt
       diagnostics.sections.configured.map(section => [section.name, section.order, section.interpolate, section.complete]),
       [
         ['amadeus:core-persona', 10, false, false],
-        ['amadeus:scene-persona', 20, false, false],
+        ['amadeus:scene-persona', 10190, false, false],
       ],
     );
     assert.equal(diagnostics.sections.overridden, 'unverified');

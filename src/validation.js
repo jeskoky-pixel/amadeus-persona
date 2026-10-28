@@ -401,7 +401,7 @@ export function validateEntityData(value) {
   requireExactKeys(
     data,
     ['core', 'styles', 'defaultStyleId', 'workspaceId', 'injectionEnabled', 'bindings'],
-    [],
+    ['bindingWorkspaceId'],
     'persona data',
   );
   validateCore(requireObject(data.core, 'core'));
@@ -417,6 +417,9 @@ export function validateEntityData(value) {
     }
   }
   if (data.workspaceId !== null) requireIdentity(data.workspaceId, 'workspaceId');
+  if (data.bindingWorkspaceId !== undefined && data.bindingWorkspaceId !== null) {
+    requireIdentity(data.bindingWorkspaceId, 'bindingWorkspaceId');
+  }
   if (typeof data.injectionEnabled !== 'boolean') {
     throw new PersonaValidationError('injectionEnabled must be a boolean');
   }
@@ -430,6 +433,7 @@ export function validateEntityData(value) {
     styles,
     defaultStyleId: data.defaultStyleId,
     workspaceId: data.workspaceId,
+    bindingWorkspaceId: data.bindingWorkspaceId ?? data.workspaceId,
     injectionEnabled: data.injectionEnabled,
     bindings,
   };
@@ -478,7 +482,7 @@ export function validateStateDocument(value, options = {}) {
       'schemaVersion', 'revision', 'createdAt', 'updatedAt', 'core', 'styles', 'defaultStyleId',
       'workspaceId', 'injectionEnabled', 'bindings', 'history',
     ],
-    [],
+    ['bindingWorkspaceId'],
     'persona state',
   );
   if (state.schemaVersion !== SCHEMA_VERSION) throw new PersonaValidationError('unsupported persona schema version');
@@ -490,6 +494,7 @@ export function validateStateDocument(value, options = {}) {
     styles: state.styles,
     defaultStyleId: state.defaultStyleId,
     workspaceId: state.workspaceId,
+    bindingWorkspaceId: state.bindingWorkspaceId,
     injectionEnabled: state.injectionEnabled,
     bindings: state.bindings,
   });
@@ -569,6 +574,7 @@ export function makeInitialState(now) {
     styles: {},
     defaultStyleId: null,
     workspaceId: null,
+    bindingWorkspaceId: null,
     injectionEnabled: true,
     bindings: {},
     history: [],

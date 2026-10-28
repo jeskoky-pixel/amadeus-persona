@@ -1,44 +1,53 @@
-# Amadeus Persona 0.1.0 开发候选验收（2026-10-29）
+# Amadeus Persona 0.1.0 候选验收（2026-10-29）
 
-## 范围与版本
+## 结论
 
-- 官方 DSH Desktop：`0.2.1-rc.3`。实现核对的是这一版本的 `systemPrompt.section()`、`assemble({agent,scope:agent})`、`workspaceRegistry` 与 Session Header 契约。
-- 隔离 Profile：`private/persona-v01-acceptance`，仅安装 Persona，没有安装 QQ、Memory、State 或 Life，也没有接入生产数据。
-- 插件经 Desktop 自带的“添加插件”表单从本地目录安装并启用；原生设置页与 Web Console 均在真实 Edge Chromium 中打开。
-- 这是供审查的开发候选，不代表已完成两群真实 QQ 或模型行为验收。
-- `npm run build:client`、`npm test`（38/38）和 `npm pack --dry-run --json` 通过；安装包包含 25 个文件，约 83 kB。报告及截图保留在 Git 仓库供审查，不作为运行时资产装入插件包。
+**尚未达到合并门槛。** Persona 的可信注入、配置、界面和五插件同装已取得下列证据，但一个反复切换风格的长期 Session 仍出现旧风格自述。最终 DSH System Prompt 已更新，模型表达却没有稳定跟随。Persona PR #1 和 QQ Host 契约 PR #3 应保持开放；Amadeus-dsh 首页不能提前标记 Persona 已交付。
 
-## 实测结果
+本轮全部运行在隔离 DSH Desktop `0.2.1-rc.3` Profile。未连接生产 QQ、NapCat、Memory 数据、Life 数据或生产 Profile。模型凭证只由既有授权配置传给隔离进程，未写入仓库。原始模型日志、会话正文和测试账户标识保留在未跟踪的私有目录，不上传 GitHub。
 
-| 项目 | 结果与证据 |
+## 版本与来源
+
+| 插件 | 隔离安装版本 | 来源 |
+| --- | --- | --- |
+| Persona | `@amadeus/persona@0.1.0` | 本 PR 候选工作树 |
+| QQ | `@amadeus/qq@1.1.0` | QQ PR #3，`9288ef474d25905816212662513911a294351681` |
+| Memory | `@amadeus/memory@1.0.1` | main，`218244c1f510bbbf59781c1a0019393f1e76be3b`，从 `dsh-mneme/` 安装 |
+| State | `@amadeus/state@1.1.0` | main，`73c8ded7d0850fd50293ce10f8d4177b69244f40` |
+| Life | `@amadeus/life@1.1.0` | main，`ad8863e7b520410faa2f3c7fad49ad580083b079` |
+
+五包均通过隔离 Desktop 的插件管理界面安装并启用。重启后，五个 Owner HTTP 入口均返回 200，Persona 的 Workspace、卡片、绑定和 revision 保持。QQ 通过断开的本机测试端口以 `connect:false` 运行，绝无 QQ 外发。Memory、State 和 Life 的实际数据库均在隔离 Profile 内。
+
+## 分层验收
+
+| 层级 | 结果 |
 | --- | --- |
-| 单独安装和原生设置 | 通过。Desktop 插件管理器显示运行中；设置弹窗中有 Amadeus Persona 健康状态、Workspace 和打开控制台入口。见 [原生设置](screenshots/native-settings.png)。 |
-| Owner API | 通过。已认证 Desktop 页面读取 `/overview` 返回 200；无认证请求返回 401。写入必须经 Host `connection.admit(req)` Owner 身份，且同源与写入标记测试通过。 |
-| 五页控制台 | 通过。总览、人格库、场景绑定、注入诊断、全局设置均由真实 Host API 提供数据。见 [总览](screenshots/overview.png)、[人格库](screenshots/library.png)、[场景绑定](screenshots/bindings.png)。 |
-| 配置写入 | 通过。浏览器中选择真实 `default-workspace`，保存核心人格、创建风格卡、设为默认、给真实 Workspace Session 保存“仅核心”覆盖。无手工 JSON/数据库修改。 |
-| 主题和窄屏 | 通过 Edge 渲染检查。见 [深色诊断](screenshots/diagnostics-dark.png) 和 [390 px 视图](screenshots/diagnostics-mobile.png)。 |
-| 编辑冲突 | 通过。两个已认证标签页的旧 revision 写入返回 409，旧草稿保留并展示重载选项。见 [冲突提示](screenshots/editor-conflict.png)。 |
-| 备份与恢复 | 通过。真实控制台创建备份、临时改写核心、输入 `RESTORE` 恢复，核心恢复原文，写入前安全备份保留。 |
-| 重启恢复 | 通过。隔离 Desktop 重启后 Workspace ID、核心卡、风格卡、默认风格和 revision 持续存在。 |
-| Markdown 文件 | 单元测试验证 `SOUL.md` 与 `styles/{styleId}.md` 的原子投影及删除同步。事务权威源为 `persona.json`；手工改 Markdown 不会改动运行人格。 |
-| 回归测试 | `npm test`：38/38 通过。覆盖 Workspace 隔离、普通 fork 与子代理区分、两组 QQ Scene、撤权、版本回滚、原子存储、Owner API、Section 组装与工具列表不变、Memory 状态未知时的告警。QQ 场景部分使用可信 Host 契约的测试替身。 |
-| 最终 Section 探测 | 代码与单元测试可区分保留和 `complete` 覆盖；真实 Desktop 的默认 Session 尚无活跃 Agent，实际探测返回 `agent_not_live`，因此没有声称真实模型提示词已验证。 |
+| 自动化 | Persona `48/48` 通过；QQ 只读 Scene 契约 `2/2` 通过。覆盖旧 v0.1 配置迁移、Workspace 绑定归属、切换前安全备份、QQ 撤权、默认风格、子 Agent 排除、原子写入、Owner API、i18n 与最终 Section 比较。 |
+| 真实 Host | Persona 在两个独立 Section 注入；QQ 的两个隔离测试群 Scene 分别保存温柔、泼辣绑定。撤销其中一个 QQ Scene 后，Persona 立即报告 `qq_revoked`；重新授权后恢复有效。重启后五插件 Owner 接口均可用。QQ 授权时会预建 Session，所以这次 Host 联测没有出现“已授权但尚无 Session”的自然状态；该状态由契约单元测试覆盖。 |
+| 真实浏览器 | Edge Chromium 中检查中文、英文 Web Console 及中文原生设置页。五页导航、场景编辑、冲突提示、备份恢复、主题和窄屏已操作；见下方截图。 |
+| 真实模型 | `opencode-go/deepseek-v4.1-flash` 在同一普通 DSH Session 完成核心 A→B、禁用、恢复及温柔→泼辣→默认的模型回合。新的三轮风格 Session 中，模型语气分别随温柔、泼辣、温柔变化；切回默认的一次回答把当前标记误写成不存在的 `WARM_883`，下一轮明确询问当前系统设定后准确返回 `GENTLE_411`。另一个被多次失败探针污染的长期 Session，最终 System Prompt 已为温柔，模型仍持续自述旧的泼辣标记；因此不能宣称热更新表达稳定通过。 |
+| 实际工具 | 人格切换前后真实 `read` 工具均成功读取隔离测试文件；五插件同装后又完成一次。最终同装回合的 `request/header` 记录模型可见工具 72 项，调用 `read` 并得到工具结果。此前 Persona 单装回合为 32 项。Persona 没有新增或删除工具；数量增加来自其他四个插件。 |
+| 真实 QQ/NapCat | 本轮未验证。只发现非隔离的 NapCat Desktop 进程，未将隔离 Profile 接入它，也未向真实群聊或私聊发送消息。此前 QQ 版本的历史实测不能充当本轮 Persona+QQ 联测。 |
 
-## 与交互原型的差异
+DSH 持久 Session 日志记录了每次 `system/message` 和 `request/header`。在温柔→泼辣→默认三轮中，最终系统消息依次只含 `GENTLE_411`、`SPICY_622`、`GENTLE_411`；请求系列变化，Session ID、Preset、历史均未重建或清空。模型错误属于最终响应层，不能把正确的 System Prompt 日志等同于模型表达通过。修改后的中文优先级说明改善了新 Session 的风格切换，但未证明所有长期历史都能可靠覆盖。
 
-- 控制台沿用侧边导航、卡片、五页布局、浅色/深色主题和响应式结构；当前界面文案主要为英文。
-- 原型中的 QQ 号、场景、人物卡和本地浏览器存储均未迁入。未安装 QQ 时绑定页只列真实 Workspace Session；QQ 场景需要 QQ Host 的可信映射。
-- 原型“保存成功”仅改 localStorage；候选版通过 Owner API、revision 乐观锁与原子文件写入保存。
-- 诊断将配置、回调观测和最终 Section 可见性分开。最终检查由管理员显式触发，只返回脱敏的可见性状态。
-- DSH 原生设置页只保留健康状态和入口，详细设置位于独立 Web Console。
+## 界面与数据验证
 
-## 尚未实机验证
+- [中文控制台](screenshots/console-zh-v01-final.png)、[英文控制台](screenshots/console-en-v01-final.png)、[中文原生设置](screenshots/native-zh-v01-final.png) 均来自真实 Edge 渲染；语言和主题偏好独立，简体中文为默认。
+- [深色诊断](screenshots/diagnostics-dark.png)、[390 px 布局](screenshots/diagnostics-mobile.png)、[编辑冲突](screenshots/editor-conflict.png) 与 [绑定页](screenshots/bindings.png) 覆盖主要界面状态。
+- 核心与风格内容由 Owner API 保存到独立 `persona.json`，revision 冲突返回 409；备份、历史恢复和重启后的卡片持久性已在隔离 Profile 验证。工作区切换的归档与旧数据兼容有回归测试，但本轮五插件 Profile 只有一个实际 Workspace，尚未完成双 Workspace 的 GUI 实测。
+- Memory 的可选人格卡默认配置为关闭；当前没有可信的跨插件“有效人格卡”读取契约。Persona 检测到 Memory 时显示状态未知告警，不修改 Memory 配置或数据库。
+- State 和 Life 的 Owner 接口在同一 Host 正常响应；本轮没有制造状态演化或自主唤醒，也没有将接口健康误报为活动链路通过。
 
-1. 此隔离 Profile 未接入 NapCat 或 QQ 插件，两个真实 QQ 群及 Owner 私聊的人格差异仍需联合实机测试；单元测试不能替代这项结论。
-2. 此隔离 Profile 无可用模型路由，因此没有完成真实模型回合、工具实际调用、提示词改动对请求系列/KV 缓存的成本测量。Section 注册与工具 Schema 不变已作代码及单元测试检查。
-3. 普通 fork、子代理和另一 Workspace 的隔离由契约测试覆盖，尚未在此 Desktop Profile 创建对应真实 Agent 来重复验证。
-4. Memory 的 `personaEnabled` 当前代码默认 `false`，但 Memory 没有公开可信的有效人格状态读取契约；检测到 Memory Host 服务时 Persona 会明确提示人工核对。Persona 不修改 Memory 配置。
+## 安装包与剩余验收
 
-## 安装、升级与回滚
+`npm pack --dry-run --json` 检查了 `@amadeus/persona@0.1.0` 的运行文件，包含 Host、客户端、五页控制台、共享 i18n 字典和测试入口。报告及截图保留在仓库，非运行时资源。`src/section-text.js` 为最终提示词与诊断共用的精确格式化函数；回归测试要求原始卡片正文不能被误报为完整 Section 可见。
 
-按 [README](../README.md) 从 DSH 插件管理器安装。首次设置只需选一个 Workspace、编辑核心、创建/选择默认风格；QQ 是可选项。升级前从设置页创建备份。回滚配置时输入 `RESTORE` 选择备份；回滚代码时重新安装前一候选包。Persona 不删除 DSH Session，不切换 Agent Preset，不改四个现有插件或生产 Profile。
+合并前仍需完成：
+
+1. 对长期 Session 的风格切回做稳定真实模型复测，或明确找到可接受且不篡改历史、工具、Preset 的兼容方案。
+2. 在确实隔离且授权的 NapCat 测试实例中，验证两个 QQ Scene 的实际模型表达和首次消息继承；本轮仅证明离线 Host 授权与撤权路径。
+3. 用第二个真实隔离 Workspace 实测切换后的旧绑定归档与恢复；补齐子 Agent、普通 fork 和 Workspace 外 Session 的 Desktop 级检查。
+4. 如要宣称五插件行为联合通过，还需分别触发 State 演化、Life 自主唤醒及可选 Memory 检索，并确认不会重复外发。
+
+本候选未创建 Release、npm 发布或 DSH Market 上架。生产部署须另行备份和验收，当前不建议替换日常 Profile。

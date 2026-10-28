@@ -62,6 +62,7 @@ function entityOf(state) {
     styles: state.styles,
     defaultStyleId: state.defaultStyleId,
     workspaceId: state.workspaceId,
+    bindingWorkspaceId: state.bindingWorkspaceId ?? state.workspaceId,
     injectionEnabled: state.injectionEnabled,
     bindings: state.bindings,
   });
@@ -197,6 +198,10 @@ export class PersonaStore {
       if (raw.charCodeAt(0) === 0xfeff) raw = raw.slice(1);
       const parsed = JSON.parse(raw);
       this.state = validateStateDocument(parsed);
+      // v0.1 documents did not carry a binding owner. Their active bindings
+      // belonged to the then-selected Workspace; persist this on the next
+      // mutation without rewriting the source during startup.
+      this.state.bindingWorkspaceId ??= this.state.workspaceId;
       this.loadError = null;
     } catch {
       this.state = null;
@@ -277,6 +282,14 @@ export class PersonaStore {
       if (current.revision !== expectedRevision) throw new PersonaConflictError(current.revision);
       const draft = entityOf(current);
       const result = await mutator(draft);
+      if (draft.bindingWorkspaceId == null) draft.bindingWorkspaceId = draft.workspaceId;
+      // Keep the backup and Workspace switch in the same write queue. A failed
+      // backup prevents the new Workspace from inheriting an unarchived binding.
+      const backup = descriptor.backupOnWorkspaceChange
+        && current.workspaceId !== draft.workspaceId
+        && Object.keys(current.bindings).length > 0
+        ? await this.#writeBackup(current, 'workspace-switch')
+        : null;
       const now = this.#nowIso();
       const historyEntry = {
         id: `hist-${randomUUID()}`,
@@ -297,7 +310,7 @@ export class PersonaStore {
       await this.#persistState(next);
       this.state = next;
       this.filePresent = true;
-      return { state: next, result, historyId: historyEntry.id };
+      return { state: next, result, historyId: historyEntry.id, backup };
     });
   }
 
@@ -529,6 +542,7 @@ export class PersonaStore {
       draft.styles = nextStyles;
       draft.defaultStyleId = restored.defaultStyleId;
       draft.workspaceId = restored.workspaceId;
+      draft.bindingWorkspaceId = restored.bindingWorkspaceId ?? restored.workspaceId;
       draft.injectionEnabled = restored.injectionEnabled;
 
       /** @type {Record<string, any>} */

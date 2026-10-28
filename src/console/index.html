@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <meta name="referrer" content="no-referrer">
-<title>Amadeus Persona · Owner Console</title>
+<title>Amadeus Persona · 所有者控制台</title>
 <link rel="stylesheet" href="/api/amadeus-persona/console/console.css">
 </head>
 <body>
@@ -13,14 +13,15 @@
   <main class="main boot-main">
     <div class="card pad-lg boot-card">
       <div class="eyebrow">AMADEUS PERSONA</div>
-      <h1>Loading owner console…</h1>
-      <p class="muted">This page only renders after DSH Owner admission. Persona data is never stored in the browser.</p>
+      <h1>正在加载所有者控制台……</h1>
+      <p class="muted">此页面仅在通过 DSH Owner 准入后渲染。Persona 数据不会保存在浏览器中。</p>
     </div>
   </main>
 </div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <dialog id="modal" class="modal" aria-labelledby="modal-title"></dialog>
-<noscript><p class="boot-main pad">The Amadeus Persona console requires JavaScript.</p></noscript>
+<noscript><p class="boot-main pad">Amadeus Persona 控制台需要启用 JavaScript。</p></noscript>
+<script src="/api/amadeus-persona/console/i18n.js" defer></script>
 <script src="/api/amadeus-persona/console/console.js" defer></script>
 </body>
 </html>

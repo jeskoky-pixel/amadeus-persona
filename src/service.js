@@ -9,6 +9,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
+import { formatPersonaSection } from './section-text.js';
 import {
   BINDING_MODES,
   LIMITS,
@@ -68,6 +69,11 @@ export function normalizeTrustedQqScene(scene) {
     return null;
   }
   return normalized;
+}
+
+function normalizeAuthorizedQqScene(entry, workspaceId) {
+  if (!isPlainObject(entry) || entry.authorized !== true || entry.workspaceId !== workspaceId) return null;
+  return normalizeTrustedQqScene({ ...entry, verified: true });
 }
 
 /**
@@ -191,6 +197,25 @@ export class PersonaService {
     }
   }
 
+  /** Current authorization is read from QQ on every use; no cached allowlist. */
+  #authorizedQqScenes(workspaceId) {
+    const qq = this.#qq();
+    if (!qq || typeof qq.listAuthorizedScenes !== 'function') return null;
+    try {
+      const entries = qq.listAuthorizedScenes();
+      if (!Array.isArray(entries)) return [];
+      return entries.slice(0, MAX_DISCOVERED_SCENES).map(entry =>
+        normalizeAuthorizedQqScene(entry, workspaceId)).filter(Boolean);
+    } catch {
+      return [];
+    }
+  }
+
+  #isAuthorizedQqScene(scene, workspaceId) {
+    const scenes = this.#authorizedQqScenes(workspaceId);
+    return scenes === null || scenes.some(candidate => qqSceneKey(candidate) === qqSceneKey(scene));
+  }
+
   /** Memory has no public effective-persona read contract in the checked version. */
   #warnings() {
     const warnings = this.store.warnings();
@@ -241,6 +266,9 @@ export class PersonaService {
     }
     const workspace = this.#boundWorkspace(state);
     if (!workspace) throw new PersonaValidationError('the bound DSH Workspace no longer exists');
+    if (state.bindingWorkspaceId !== state.workspaceId) {
+      throw new PersonaValidationError('bindings belong to a different DSH Workspace');
+    }
     return workspace;
   }
 
@@ -315,6 +343,9 @@ export class PersonaService {
           throw new PersonaValidationError('QQ Session has no verified Scene mapping');
         }
         scene = mapping.scene;
+        if (!this.#isAuthorizedQqScene(scene, state.workspaceId)) {
+          throw new PersonaValidationError('QQ Scene is no longer authorized for this Workspace');
+        }
         if (input.scene !== undefined) {
           const candidate = this.#inputScene(input.scene);
           if (qqSceneKey(candidate) !== qqSceneKey(scene)) {
@@ -329,6 +360,12 @@ export class PersonaService {
         const candidate = this.#inputScene(input.scene);
         const qq = this.#qq();
         if (!qq) throw new PersonaUnavailableError('PERSONA_QQ_UNAVAILABLE', 'QQ Scene mapping is unavailable');
+        const authorized = this.#authorizedQqScenes(state.workspaceId);
+        if (authorized !== null) {
+          scene = authorized.find(item => qqSceneKey(item) === qqSceneKey(candidate));
+          if (!scene) throw new PersonaValidationError('QQ Scene is not authorized for this Workspace');
+          return { key: qqSceneKey(scene), kind: 'qq', scene };
+        }
         let found = false;
         let invalid = false;
         for (const sessionId of this.#sessionIds(workspace)) {
@@ -377,6 +414,7 @@ export class PersonaService {
       if (binding.mode === 'style') return { valid: false, reason: 'style_missing' };
     }
     if (state.workspaceId === null) return { valid: false, reason: 'workspace_unbound' };
+    if (state.bindingWorkspaceId !== state.workspaceId) return { valid: false, reason: 'binding_workspace_mismatch' };
     const workspace = this.#boundWorkspace(state);
     if (!workspace) return { valid: false, reason: 'workspace_missing' };
     const members = this.#sessionIds(workspace);
@@ -387,6 +425,10 @@ export class PersonaService {
     }
     const qq = this.#qq();
     if (!qq) return { valid: false, reason: 'qq_unavailable' };
+    const authorized = this.#authorizedQqScenes(state.workspaceId);
+    if (authorized !== null && !authorized.some(scene => qqSceneKey(scene) === binding.key)) {
+      return { valid: false, reason: 'qq_revoked' };
+    }
     let invalid = false;
     for (const sessionId of members) {
       const mapping = this.#resolveQqSession(sessionId);
@@ -395,6 +437,7 @@ export class PersonaService {
       }
       if (mapping.status === 'invalid') invalid = true;
     }
+    if (authorized !== null) return { valid: true, reason: 'awaiting_first_session' };
     return { valid: false, reason: invalid ? 'qq_mapping_invalid' : 'qq_scene_unmapped' };
   }
 
@@ -532,6 +575,7 @@ export class PersonaService {
     resolution.revision = state.revision;
     if (state.injectionEnabled !== true) return empty('injection_disabled', { revision: state.revision });
     if (state.workspaceId === null) return empty('workspace_unbound', { revision: state.revision });
+    if (state.bindingWorkspaceId !== state.workspaceId) return empty('binding_workspace_mismatch', { revision: state.revision });
 
     const workspace = this.#boundWorkspace(state);
     if (!workspace) return empty('workspace_missing', { workspaceId: state.workspaceId, revision: state.revision });
@@ -561,6 +605,9 @@ export class PersonaService {
     /** @type {Record<string, any>|undefined} */
     let binding;
     if (qqMapping.status === 'verified') {
+      if (!this.#isAuthorizedQqScene(qqMapping.scene, state.workspaceId)) {
+        return empty('qq_scene_revoked', { workspaceId: state.workspaceId, revision: state.revision, qqState: qqMapping.status });
+      }
       const key = qqSceneKey(qqMapping.scene);
       if (Object.hasOwn(state.bindings, key)) {
         binding = state.bindings[key];
@@ -727,14 +774,28 @@ export class PersonaService {
     let qqAvailable = this.#qq() !== undefined;
     if (bound !== undefined) {
       const seen = new Set();
+      const authorized = this.#authorizedQqScenes(state.workspaceId);
+      if (authorized !== null) {
+        for (const scene of authorized) {
+          const key = qqSceneKey(scene);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          scenes.push({ key, ...scene, sessionId: null, status: 'awaiting_first_session' });
+        }
+      }
       for (const sessionId of this.#sessionIds(bound)) {
         if (scenes.length >= MAX_DISCOVERED_SCENES) break;
         const mapping = this.#resolveQqSession(sessionId);
         if (mapping.status !== 'verified') continue;
         const key = qqSceneKey(mapping.scene);
-        if (seen.has(key)) continue;
+        if (authorized !== null && !this.#isAuthorizedQqScene(mapping.scene, state.workspaceId)) continue;
+        if (seen.has(key)) {
+          const existing = scenes.find(item => item.key === key);
+          if (existing) { existing.sessionId = sessionId; existing.status = 'session_linked'; }
+          continue;
+        }
         seen.add(key);
-        scenes.push({ key, ...mapping.scene, sessionId });
+        scenes.push({ key, ...mapping.scene, sessionId, status: 'session_linked' });
       }
     }
     return {
@@ -802,7 +863,7 @@ export class PersonaService {
         hostGlobal: true,
         configured: [
           { name: 'amadeus:core-persona', order: 10, interpolate: false, complete: false, registered: true },
-          { name: 'amadeus:scene-persona', order: 20, interpolate: false, complete: false, registered: true },
+          { name: 'amadeus:scene-persona', order: 10190, interpolate: false, complete: false, registered: true },
         ],
         assembled: [...this.recent.values()].reverse().map(observation => ({
           at: observation.at,
@@ -839,7 +900,7 @@ export class PersonaService {
       sessionRecreation: false,
       limitations: [
         'final prompt visibility is unverified when another preset supplies a complete system prompt section',
-        'QQ Scene bindings require a current Workspace Session with a trusted QQ Host mapping',
+        'QQ prebinding requires a current authorized Scene in the bound Workspace; active injection also requires a trusted Session mapping',
         'token counts are heuristic estimates, not tokenizer-exact',
       ],
     };
@@ -916,9 +977,9 @@ export class PersonaService {
     }
     const core = assembly.sections.find(section => section?.name === 'amadeus:core-persona');
     const scene = assembly.sections.find(section => section?.name === 'amadeus:scene-persona');
-    const coreVisible = core?.text === expected.coreText && expected.coreText.length > 0;
+    const coreVisible = core?.text === formatPersonaSection('core', expected.coreText) && expected.coreText.length > 0;
     const sceneExpected = expected.styleText.length > 0;
-    const sceneVisible = sceneExpected && scene?.text === expected.styleText;
+    const sceneVisible = sceneExpected && scene?.text === formatPersonaSection('scene', expected.styleText);
     return {
       status: coreVisible && (!sceneExpected || sceneVisible) ? 'visible' : 'overridden',
       reason: coreVisible && (!sceneExpected || sceneVisible) ? 'final_sections_match' : 'final_sections_missing_or_changed',
@@ -945,16 +1006,22 @@ export class PersonaService {
     const result = await this.store.mutate(expectedRevision, {
       action: 'workspace.bind',
       changes: { kind: 'workspace' },
+      backupOnWorkspaceChange: true,
     }, (draft) => {
       if (id !== null && !this.#workspace(id)) {
         throw new PersonaValidationError('DSH Workspace was not found');
       }
+      const archivedBindingCount = draft.workspaceId === id ? 0 : Object.keys(draft.bindings).length;
+      if (draft.workspaceId !== id) draft.bindings = {};
       draft.workspaceId = id;
-      return { workspaceId: id };
+      draft.bindingWorkspaceId = id;
+      return { workspaceId: id, archivedBindingCount };
     });
     return {
       revision: result.state.revision,
       workspaceId: result.result.workspaceId,
+      archivedBindingCount: result.result.archivedBindingCount,
+      backupId: result.backup?.id ?? null,
       workspace: result.result.workspaceId === null
         ? null
         : { id: result.result.workspaceId, title: safeTitle(this.#workspace(result.result.workspaceId)) },

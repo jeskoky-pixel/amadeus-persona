@@ -18,4 +18,5 @@ function asset(name) {
 
 export const CONSOLE_HTML = asset('index.html');
 export const CONSOLE_CSS = asset('console.css');
+export const CONSOLE_I18N = asset('i18n.js');
 export const CONSOLE_JS = asset('console.js');
