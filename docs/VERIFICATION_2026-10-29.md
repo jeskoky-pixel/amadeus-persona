@@ -2,7 +2,7 @@
 
 ## 结论
 
-**尚未达到合并门槛。** Persona 的可信注入、配置、界面和五插件同装已取得下列证据，但一个反复切换风格的长期 Session 仍出现旧风格自述。最终 DSH System Prompt 已更新，模型表达却没有稳定跟随。Persona PR #1 和 QQ Host 契约 PR #3 应保持开放；Amadeus-dsh 首页不能提前标记 Persona 已交付。
+**可作为个人实机测试的开发基线合并，尚未达到生产部署验收。** Persona 的可信注入、配置、界面和五插件同装已取得下列证据；一个反复切换风格的长期 Session 仍出现旧风格自述。最终 DSH System Prompt 已更新，模型表达却没有稳定跟随。用户已在 2026-10-29 明确接受这项上下文局限并要求继续合并与更新项目主页；文档仍将它列为已知限制，不把模型表达写成稳定通过。
 
 本轮全部运行在隔离 DSH Desktop `0.2.1-rc.3` Profile。未连接生产 QQ、NapCat、Memory 数据、Life 数据或生产 Profile。模型凭证只由既有授权配置传给隔离进程，未写入仓库。原始模型日志、会话正文和测试账户标识保留在未跟踪的私有目录，不上传 GitHub。
 
@@ -11,7 +11,7 @@
 | 插件 | 隔离安装版本 | 来源 |
 | --- | --- | --- |
 | Persona | `@amadeus/persona@0.1.0` | 本 PR 候选工作树 |
-| QQ | `@amadeus/qq@1.1.0` | QQ PR #3，`9288ef474d25905816212662513911a294351681` |
+| QQ | `@amadeus/qq@1.1.0` | 已合并 main，`1bd1538e9eaae56329f4a713fa4a84d723c0c72b`；隔离安装时使用内容相同的 PR #3 提交 `9288ef474d25905816212662513911a294351681` |
 | Memory | `@amadeus/memory@1.0.1` | main，`218244c1f510bbbf59781c1a0019393f1e76be3b`，从 `dsh-mneme/` 安装 |
 | State | `@amadeus/state@1.1.0` | main，`73c8ded7d0850fd50293ce10f8d4177b69244f40` |
 | Life | `@amadeus/life@1.1.0` | main，`ad8863e7b520410faa2f3c7fad49ad580083b079` |
@@ -43,9 +43,9 @@ DSH 持久 Session 日志记录了每次 `system/message` 和 `request/header`�
 
 `npm pack --dry-run --json` 检查了 `@amadeus/persona@0.1.0` 的运行文件，包含 Host、客户端、五页控制台、共享 i18n 字典和测试入口。报告及截图保留在仓库，非运行时资源。`src/section-text.js` 为最终提示词与诊断共用的精确格式化函数；回归测试要求原始卡片正文不能被误报为完整 Section 可见。
 
-合并前仍需完成：
+生产部署或宣称完整联合验收前仍需完成：
 
-1. 对长期 Session 的风格切回做稳定真实模型复测，或明确找到可接受且不篡改历史、工具、Preset 的兼容方案。
+1. 对长期 Session 的风格切回继续评估模型上下文影响，必要时寻找不篡改历史、工具、Preset 的兼容方案。
 2. 在确实隔离且授权的 NapCat 测试实例中，验证两个 QQ Scene 的实际模型表达和首次消息继承；本轮仅证明离线 Host 授权与撤权路径。
 3. 用第二个真实隔离 Workspace 实测切换后的旧绑定归档与恢复；补齐子 Agent、普通 fork 和 Workspace 外 Session 的 Desktop 级检查。
 4. 如要宣称五插件行为联合通过，还需分别触发 State 演化、Life 自主唤醒及可选 Memory 检索，并确认不会重复外发。
