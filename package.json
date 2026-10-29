@@ -24,6 +24,7 @@
     "docs/DATA_MIGRATION.md",
     "docs/RELEASE_CHECKLIST.md",
     "docs/INSTALL_V1_2.md",
+    "docs/RELEASE_NOTES.md",
     "scripts/release-audit.mjs",
     "screenshots.json",
     "assets/market-icon.png",
