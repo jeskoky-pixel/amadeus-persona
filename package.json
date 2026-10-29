@@ -3,7 +3,7 @@
   "version": "1.2.0",
   "private": true,
   "description": "Amadeus Persona v0.1: trusted Workspace/QQ-Scene persona injection, revisioned JSON storage, owner-only management API, and five-page Web Console for DeepSeek Harness",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "main": "src/index.js",
   "exports": {
@@ -20,6 +20,7 @@
     "docs/UI_REPORT.md",
     "docs/I18N_IMPLEMENTATION.md",
     "README.md",
+    "LICENSE",
     "docs/UPGRADE_POLICY.md",
     "docs/DATA_MIGRATION.md",
     "docs/RELEASE_CHECKLIST.md",
