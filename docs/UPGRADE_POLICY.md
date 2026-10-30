@@ -1,6 +1,6 @@
 # Persona 升级与数据保留政策
 
-适用包：`@amadeus/persona`；运行时插件 ID：`amadeus-persona`。v1.2.0 从 `0.1.0` 升级。本政策从 v1.2.0 起用于后续 v1.2.1、v1.3.0 和主版本发布。
+适用包：`@fg-lab/amadeus-persona`；运行时插件 ID：`amadeus-persona`。v1.2.0 从 `0.1.0` 升级。本政策从 v1.2.0 起用于后续 v1.2.1、v1.3.0 和主版本发布。
 
 ## 代码、配置与数据
 

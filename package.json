@@ -1,7 +1,6 @@
 {
-  "name": "@amadeus/persona",
+  "name": "@fg-lab/amadeus-persona",
   "version": "1.2.0",
-  "private": true,
   "description": "Amadeus Persona v0.1: trusted Workspace/QQ-Scene persona injection, revisioned JSON storage, owner-only management API, and five-page Web Console for DeepSeek Harness",
   "license": "MIT",
   "type": "module",
@@ -52,5 +51,16 @@
     "test": "node test/run.js",
     "test:node": "node --test test/*.test.js",
     "verify:release": "node scripts/release-audit.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeskoky-pixel/amadeus-persona.git"
+  },
+  "homepage": "https://github.com/jeskoky-pixel/amadeus-persona#readme",
+  "bugs": {
+    "url": "https://github.com/jeskoky-pixel/amadeus-persona/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

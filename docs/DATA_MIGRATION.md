@@ -2,7 +2,7 @@
 
 ## 当前格式
 
-- 发行包：`@amadeus/persona@1.2.0`
+- 发行包：`@fg-lab/amadeus-persona@1.2.0`
 - 持久 Schema Version：JSON `schemaVersion = 1` (`src/validation.js`)
 - 数据范围：`$DSH_HOME/amadeus-persona/persona.json`（或显式数据目录）、SOUL/STYLE 投影、历史和 `backups/`；DSH Profile 中的 Bundle 配置。
 - 本轮迁移：0.1.0 → 1.2.0 保持 schema 1 和同一数据目录。未知版本验证失败而不静默生成新人格；恢复前创建安全备份。

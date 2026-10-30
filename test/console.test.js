@@ -27,7 +27,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 test('package manifest declares host, client bundle, console files and build script', async () => {
   const manifest = JSON.parse(await readFile(join(ROOT, 'package.json'), 'utf8'));
-  assert.equal(manifest.name, '@amadeus/persona');
+  assert.equal(manifest.name, '@fg-lab/amadeus-persona');
   assert.equal(manifest.main, 'src/index.js');
   assert.equal(manifest.exports['.'], './src/index.js');
   assert.equal(manifest.exports['./client'], './src/client.js');
@@ -46,7 +46,7 @@ test('native DSH settings bundle matches its source, shared dictionary and healt
   const source = await readFile(join(ROOT, 'src', 'client-panel.js'), 'utf8');
   const built = await readFile(join(ROOT, 'src', 'client.js'), 'utf8');
   assert.equal(built, renderClient(source));
-  assert.match(built, /window\.__ModuleLoader__\.load\(\{id:'@amadeus\/persona'/);
+  assert.match(built, /window\.__ModuleLoader__\.load\(\{id:'@fg-lab\/amadeus-persona'/);
   assert.match(built, /factory:\(require\)=>/);
   assert.match(built, /require\('react'\)/);
   assert.match(built, /ctx\.slots\.inject\('settings\.section'/);

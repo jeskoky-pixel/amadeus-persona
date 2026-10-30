@@ -1,6 +1,5 @@
 url: https://github.com/jeskoky-pixel/amadeus-persona
 name: jeskoky-pixel/amadeus-persona
-tarball: https://github.com/jeskoky-pixel/amadeus-persona/releases/download/v1.2.0/amadeus-persona-1.2.0.tgz
 category: identity
 description:
   en: Applies one core persona and scene-specific styles through trusted DeepSeek Harness System Prompt sections.

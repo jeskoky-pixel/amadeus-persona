@@ -46,7 +46,7 @@ export function renderClient(source, catalog = CATALOG) {
     throw new Error(`src/client-panel.js must contain the i18n marker: ${I18N_MARKER}`);
   }
   const filled = text.replace(I18N_MARKER, renderCatalogLiteral(catalog));
-  return `${HEADER}window.__ModuleLoader__.load({id:'@amadeus/persona',factory:(require)=>{\n${filled.replace(/\s+$/, '')}\n}});\n`;
+  return `${HEADER}window.__ModuleLoader__.load({id:'@fg-lab/amadeus-persona',factory:(require)=>{\n${filled.replace(/\s+$/, '')}\n}});\n`;
 }
 
 /**
