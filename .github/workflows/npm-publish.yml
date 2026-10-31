@@ -32,7 +32,7 @@ jobs:
           git merge-base --is-ancestor HEAD origin/main
           if ($LASTEXITCODE -ne 0) { throw 'Tagged commit is not on main' }
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - run: npm run build
+      - run: npm run build:client
       - run: npm test
       - run: npm run verify:release
       - name: Pack and publish this tested artifact
