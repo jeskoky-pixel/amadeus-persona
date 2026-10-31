@@ -1,5 +1,7 @@
 # Amadeus Persona
 
+<img src="assets/market-icon.png" width="80" alt="Amadeus persona logo">
+
 [简体中文](README.zh-CN.md) · [Detailed configuration](REFERENCE.md) · [Issues](https://github.com/jeskoky-pixel/amadeus-persona/issues)
 
 One core identity and reusable Scene styles, injected as independent System Prompt sections.
@@ -9,6 +11,17 @@ Target package: **`@fg-lab/amadeus-persona@1.2.0`**. Tested runtime baseline: of
 ## Release status
 
 Productization candidate. Public npm and GitHub Release publication are pending release gates and npm account authorization. A version in this README is not evidence of publication. See [publishing policy](docs/PUBLISHING.md).
+
+## What you can do
+
+- Edit one shared SOUL core identity and any number of reusable STYLE cards, with versions and backups.
+- Select a default style for one Workspace and override individual Sessions or trusted QQ Scenes; choose inherit, core-only or disabled when appropriate.
+- Update persona at a later model assembly without changing the Agent Preset or rebuilding an existing Session. Ongoing tool calls are not interrupted.
+- Use the bilingual console's library, bindings and diagnostics; inspect conflicts and final System Prompt visibility.
+
+Example: keep the same core identity for a project, use a concise style in a work Session and a conversational style in an authorized QQ group. Scene members share that Scene style, not private memory from other Scenes.
+
+Persona creates neither a new model nor new tool permissions. Other Workspaces and subagents are excluded by default. A persona edit can affect request-series or prompt-cache reuse; long conversation context may still influence wording. A configured card is not proof of final injection: use diagnostics.
 
 ## Install and configure
 
