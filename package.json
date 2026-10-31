@@ -1,7 +1,7 @@
 {
   "name": "@fg-lab/amadeus-persona",
   "version": "1.2.0",
-  "description": "Amadeus Persona v0.1: trusted Workspace/QQ-Scene persona injection, revisioned JSON storage, owner-only management API, and five-page Web Console for DeepSeek Harness",
+  "description": "One core identity and reusable Scene styles, injected as independent System Prompt sections.",
   "license": "MIT",
   "type": "module",
   "main": "src/index.js",
@@ -28,7 +28,10 @@
     "scripts/release-audit.mjs",
     "screenshots.json",
     "assets/market-icon.png",
-    "docs/screenshots"
+    "docs/screenshots",
+    "README.zh-CN.md",
+    "REFERENCE.md",
+    "docs/PUBLISHING.md"
   ],
   "dsh": {
     "manifestVersion": 1,
@@ -62,5 +65,10 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "keywords": [
+    "dsh-plugin",
+    "amadeus",
+    "persona"
+  ]
 }
