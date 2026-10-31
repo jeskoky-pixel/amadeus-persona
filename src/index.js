@@ -1,5 +1,5 @@
 /**
- * Amadeus Persona v0.1 — Cordis Host plugin.
+ * Amadeus Persona v1.2 — Cordis Host plugin.
  *
  * The plugin is Host-global so every Agent assembly can be checked.  It owns
  * exactly two System Prompt sections and a Workspace/QQ-Scene-aware resolver;

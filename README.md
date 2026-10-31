@@ -1,4 +1,6 @@
-# Amadeus Persona v0.1
+# Amadeus Persona v1.2.0（发行候选）
+
+预构建 DSH Bundle 已在官方 DSH Desktop `0.2.1-rc.3` 附带运行时的隔离 Profile 中验证安装和升级。公开 npm 与市场收录尚未执行。安装、升级、卸载和人格数据保留见 [v1.2 安装说明](docs/INSTALL_V1_2.md)、[升级政策](docs/UPGRADE_POLICY.md) 和 [数据迁移](docs/DATA_MIGRATION.md)。
 
 A standalone DeepSeek Harness (DSH) Host plugin for one trusted Workspace's core persona and reusable scene-style personas. It adds exactly two independent System Prompt sections, an owner-only JSON API, and an owner-authenticated five-page Web Console. It does not register tools, choose or recompose a preset, change runtime context, grant permissions, or replace the existing Amadeus plugins.
 
@@ -12,13 +14,8 @@ No QQ, Memory, Life, or State plugin is required.
 
 ## Install
 
-1. Build the package tarball from this repository:
-
-   ```powershell
-   npm pack
-   ```
-
-2. In DSH Desktop, install the generated `amadeus-persona-0.1.0.tgz` through the official Plugin Manager into the intended isolated profile. Do not hand-merge the bundle patch into a live profile.
+1. Obtain the prebuilt `amadeus-persona-1.2.0.tgz` candidate artifact or, after release approval, install the versioned GitHub/Market source. No local build is required.
+2. In DSH Desktop, install that package through the official Plugin Manager into the intended profile. Do not hand-merge the bundle patch into a live profile.
 3. Restart or reload DSH if the Plugin Manager asks you to.
 4. Open **Settings → Amadeus Persona**. The native DSH section only shows Host storage health, the bound Workspace, and an **Open Persona console** button. It does not contain editing controls.
 5. The button opens `/api/amadeus-persona/console` in a new tab. That page and every asset and JSON request require the same DSH Owner admission as the settings page.
@@ -77,6 +74,6 @@ The DSH sandbox may block the piped child-process spawn used by `node --test`; `
 - QQ Scene prebinding requires the current QQ Host authorization list for the bound Workspace; active injection also requires a trusted Session mapping. A stale or revoked mapping fails closed. Without the new QQ Host method, Persona retains the previous Session-only binding behavior.
 - The native settings section and five-page Web Console were visually exercised in an isolated DSH Desktop `0.2.1-rc.3` profile with Edge Chromium. [Chinese](docs/screenshots/console-zh-v01-final.png) and [English](docs/screenshots/console-en-v01-final.png) screenshots and the verification boundary are in [`docs/VERIFICATION_2026-10-29.md`](docs/VERIFICATION_2026-10-29.md).
 - Real model hot updates and tool calls were exercised, but a long-running test Session continued to echo an obsolete style after many prior self-reports. The final System Prompt was current. The owner accepted this as a documented context limitation for the development baseline; see the verification report. Real QQ/NapCat messaging and the five-plugin Life/State behavior remain unverified in this round.
-- The package is private and unreleased. No GitHub Release, npm publication, or DSH Market submission has been made.
+- This repository is [MIT licensed](LICENSE). The v1.2 package is configured for the public `@fg-lab` npm scope and a versioned GitHub Release package. Publication and DSH Market submission status are tracked in the release report.
 
 See `docs/UI_REPORT.md` for the UI slice report and explicit verification boundaries.

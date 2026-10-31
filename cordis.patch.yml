@@ -4,4 +4,4 @@
 # one DSH Workspace through its owner API.
 - insert:
     - id: amadeus-persona
-      name: '@amadeus/persona'
+      name: '@fg-lab/amadeus-persona'
